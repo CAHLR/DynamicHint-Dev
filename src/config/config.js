@@ -105,16 +105,16 @@ const DYNAMIC_FIXING_URL =
 const DYNAMIC_HINT_TEMPLATE =
     "<{problem_title}.> <{problem_subtitle}.> <{question_title}.> <{question_subtitle}.> <Student's answer is: {student_answer}.> <The correct answer is: {correct_answer}.> Please give a hint for this.";
 
-const OPENAI_KEY = "tl.9RfF4SotyLjorUgJX{72U4CmclGKwZtTw:kP{nxYTUwiy2ir";
+const OPENAI_KEY = "tl.flbXTG1gMx:VRO[tMVodU4CmclGKu15L5oZ53x{6pTHXnf3O";
 
-const decode = (value) => {
-    let decoded = "";
-    for (let i = 0; i < value.length; i++) {
-        decoded += String.fromCharCode(value.charCodeAt(i) - 1);
-    }
-    return decoded;
-};
-console.log("decoded: ", decode(OPENAI_KEY));
+// const decode = (value) => {
+//     let decoded = "";
+//     for (let i = 0; i < value.length; i++) {
+//         decoded += String.fromCharCode(value.charCodeAt(i) + 1);
+//     }
+//     return decoded;
+// };
+// console.log("decoded: ", decode(OPENAI_KEY));
 
 // const coursePlans = courses.sort((a, b) => a.courseName.localeCompare(b.courseName));
 const coursePlans = courses;
