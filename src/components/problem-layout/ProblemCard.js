@@ -198,7 +198,6 @@ class ProblemCard extends React.Component {
             this.addChunkCallback,
             this.setHintFinishCallback
         );
-        this.key = this.decode(OPENAI_KEY);
         this.chat.setApiKey(process.env.REACT_APP_OPENAI_KEY);
     }
 
