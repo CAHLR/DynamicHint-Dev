@@ -1,7 +1,7 @@
 {
   "files": {
     "main.css": "/DynamicHint-Dev/static/css/main.8da4b09d.css",
-    "main.js": "/DynamicHint-Dev/static/js/main.c1dc71d8.js",
+    "main.js": "/DynamicHint-Dev/static/js/main.cfb77a68.js",
     "static/media/Symbola.svg": "/DynamicHint-Dev/static/media/Symbola.f647c9292a2da02d9ae8.svg",
     "static/media/Symbola.eot": "/DynamicHint-Dev/static/media/Symbola.d25fbd520f6558203fb4.eot",
     "static/media/Symbola.ttf": "/DynamicHint-Dev/static/media/Symbola.1ac5fa7f9b82ed4ce3f3.ttf",
@@ -9,10 +9,10 @@
     "static/media/Symbola.woff2": "/DynamicHint-Dev/static/media/Symbola.080d8bb6a36e8bd8966b.woff2",
     "index.html": "/DynamicHint-Dev/index.html",
     "main.8da4b09d.css.map": "/DynamicHint-Dev/static/css/main.8da4b09d.css.map",
-    "main.c1dc71d8.js.map": "/DynamicHint-Dev/static/js/main.c1dc71d8.js.map"
+    "main.cfb77a68.js.map": "/DynamicHint-Dev/static/js/main.cfb77a68.js.map"
   },
   "entrypoints": [
     "static/css/main.8da4b09d.css",
-    "static/js/main.c1dc71d8.js"
+    "static/js/main.cfb77a68.js"
   ]
 }
