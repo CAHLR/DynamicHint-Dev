@@ -49,6 +49,8 @@ jobs:
               env:
                   REACT_APP_OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
                   CI: false
+                  REACT_APP_BUILD_TYPE: "production"
+                  REACT_APP_COMMIT_HASH: ${{ github.sha }}
 
             - uses: actions/checkout@v2
               with:
