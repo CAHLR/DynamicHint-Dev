@@ -16,6 +16,12 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Add SSH private keys for submodule repositories
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: |
+            ${{ secrets.OATUTOR_CONTENT_DEPLOY_KEY }}
+
       - run: git submodule update --init --recursive
 
       - name: Save original git author and git email
@@ -43,6 +49,14 @@ jobs:
 
       - name: Run CI install
         run: npm ci
+
+      - name: Run build
+        run: npm run build
+        env:
+          REACT_APP_FIREBASE_CONFIG: ${{ secrets.STAGING_FIREBASE_CONFIG }}
+          CI: false
+          REACT_APP_BUILD_TYPE: "production"
+          REACT_APP_COMMIT_HASH: ${{ github.sha }}
 
       - uses: actions/checkout@v2
         with:
