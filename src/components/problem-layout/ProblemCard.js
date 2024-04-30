@@ -199,7 +199,7 @@ class ProblemCard extends React.Component {
             this.setHintFinishCallback
         );
         this.key = this.decode(OPENAI_KEY);
-        this.chat.setApiKey(this.key);
+        this.chat.setApiKey(process.env.REACT_APP_OPENAI_KEY);
     }
 
     // keystroke logging functionalities
