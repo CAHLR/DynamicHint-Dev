@@ -33,11 +33,11 @@ class Completion {
         this.user = config.user || "";
     }
 
-    static apiKey;
+    static apiKey = process.env.REACT_APP_OPENAI_KEY;
 
-    setApiKey(apiKey) {
-        this.apiKey = apiKey;
-    }
+    // setApiKey(apiKey) {
+    //     this.apiKey = apiKey;
+    // }
 
     updateParam(id, newValue) {
         if (!this[id]) {

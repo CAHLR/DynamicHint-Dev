@@ -198,8 +198,7 @@ class ProblemCard extends React.Component {
             this.addChunkCallback,
             this.setHintFinishCallback
         );
-        console.log("openai key: ", process.env.REACT_APP_OPENAI_KEY);
-        this.chat.setApiKey(process.env.REACT_APP_OPENAI_KEY);
+        // this.chat.setApiKey(process.env.REACT_APP_OPENAI_KEY);
     }
 
     // keystroke logging functionalities
