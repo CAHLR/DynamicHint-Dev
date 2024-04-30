@@ -216,7 +216,8 @@ class Firebase {
         courseName,
         hintType,
         dynamicHint,
-        studentProgress
+        studentProgress,
+        keylog_data
     ) {
         if (!DO_LOG_DATA) {
             console.debug("Not using firebase for logging (2)");
@@ -245,6 +246,7 @@ class Firebase {
             hintType,
             dynamicHint,
             studentProgress,
+            keylog_data,
         };
         return this.writeData(GPTExperimentOutput, data);
         // return this.writeData(problemSubmissionsOutput, data);

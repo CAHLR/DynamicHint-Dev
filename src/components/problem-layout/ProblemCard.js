@@ -38,11 +38,42 @@ import { joinList } from "../../util/formListString";
 import axios from "axios";
 import Completion from "../../models/OpenAI/Completion";
 import BlinkingCursor from "@components/BlinkingCursor.js";
-import { ThreeSixty } from "@material-ui/icons";
-import KeyStrokeLogger from "../../components/keystroke/useKeyStrokeLogging.jsx";
+import { createRef, Component } from "react";
+import { ActivityDetector } from "@components/keystroke/ActivityDetector.jsx";
 
 class ProblemCard extends React.Component {
     static contextType = ThemeContext;
+
+    // keystroke logging class features
+    userId = 0;
+    sessionId = "XXX";
+    quizId = "YYY";
+    endpoint = "https://XXXX";
+
+    TextareaTouch = false;
+    taskonset = 0; // set the value as the time when the target question is loaded.
+    EventID = 0;
+    startSelect = [];
+    endSelect = [];
+    ActivityCancel = []; // to keep track of changes caused by control + z
+    TextChangeCancel = []; // to keep track of changes caused by control + z
+    sessionQuiz = this.sessionId + "-" + this.quizId;
+    keylog = {
+        //Proprieties
+        TaskOnSet: [], ///
+        TaskEnd: [],
+        PartitionKey: [],
+        RowKey: [],
+        EventID: [], ////
+        EventTime: [], ////
+        Output: [], ////
+        CursorPosition: [], ////
+        TextContent: [], ////
+        finalAnswer: [], ////
+        TextChange: [], ////
+        Activity: [], /////
+        FinalProduct: [], /////
+    };
 
     constructor(props, context) {
         super(props);
@@ -146,6 +177,16 @@ class ProblemCard extends React.Component {
             dynamicHintGenerationFinished: false,
         };
 
+        // keystroke logging part
+        this.showYourWorkAreaRef = React.createRef();
+        this.finalAnswerAreaRef = React.createRef();
+
+        this.submitButtonRef = React.createRef();
+        this.aiFeedbackButtonRef = React.createRef();
+        this.aiHintButtonRef = React.createRef();
+        this.aiSolutionButtonRef = React.createRef();
+        this.teacherGuidanceButtonRef = React.createRef();
+
         this.addChunkCallback = this.addChunkCallback.bind(this);
         this.setHintFinishCallback = this.setHintFinishCallback.bind(this);
         this.chat = new Completion(
@@ -160,6 +201,120 @@ class ProblemCard extends React.Component {
         this.key = this.decode(OPENAI_KEY);
         this.chat.setApiKey(this.key);
     }
+
+    // keystroke logging functionalities
+    handleCursor = (refType, keylog, startSelect, endSelect) => {
+        // log cursor position information
+        if (refType == "showYourWorkAreaRef") {
+            keylog.CursorPosition.push(
+                this.showYourWorkAreaRef.current.selectionEnd
+            );
+            startSelect.push(this.showYourWorkAreaRef.current.selectionStart);
+            endSelect.push(this.showYourWorkAreaRef.current.selectionEnd);
+        } else if (refType == "finalAnswerAreaRef") {
+            keylog.CursorPosition.push(
+                this.finalAnswerAreaRef.current.selectionEnd
+            );
+            startSelect.push(this.finalAnswerAreaRef.current.selectionStart);
+            endSelect.push(this.finalAnswerAreaRef.current.selectionEnd);
+        }
+    };
+
+    logCurrentText = (e) => {
+        this.keylog.TextContent.push(e.target.value);
+    };
+
+    handleKeyDown = (e) => {
+        let d_press = new Date();
+        this.keylog.EventTime.push(d_press.getTime() - this.taskonset); // start time
+
+        this.EventID = this.EventID + 1;
+        this.keylog.EventID.push(this.EventID);
+
+        // Add a unique RowKey
+        this.keylog.RowKey.push(this.sessionQuiz + "-" + String(this.EventID));
+
+        /// when logging space, it is better to use the letter space for the output column
+        if (e.key === " ") {
+            this.keylog.Output.push("Space");
+        } else if (e.key === "unidentified") {
+            this.keylog.Output.push("VirtualKeyboardTouch");
+        } else {
+            this.keylog.Output.push(e.key);
+        }
+
+        this.logCurrentText(e);
+        this.handleCursor(this.keylog, this.startSelect, this.endSelect);
+
+        // use a customized function to detect and record different activities and the according text changes these activities bring about
+        ActivityDetector(
+            this.keylog,
+            this.startSelect,
+            this.endSelect,
+            this.ActivityCancel,
+            this.TextChangeCancel
+        );
+        // console.log(textNow);
+    };
+
+    handleTouch = () => {
+        this.TextareaTouch = true;
+    };
+
+    handleMouseClick = (e) => {
+        let mouseDown_m = new Date();
+        let MouseDownTime = mouseDown_m.getTime() - this.taskonset;
+
+        this.EventID = this.EventID + 1;
+        this.keylog.EventID.push(this.EventID);
+
+        // Add a unique RowKey
+        this.keylog.RowKey.push(this.sessionQuiz + "-" + String(this.EventID));
+
+        //////Start logging for this current click down event
+        this.keylog.EventTime.push(MouseDownTime); // starttime
+        if (e.button === 0) {
+            if (this.TextareaTouch) {
+                this.keylog.Output.push("TextareaTouch");
+            } else {
+                this.keylog.Output.push("Leftclick");
+            }
+        } else if (e.button === 1) {
+            if (this.state.TextareaTouch) {
+                this.keylog.Output.push("TextareaTouch");
+            } else {
+                this.keylog.Output.push("Middleclick");
+            }
+        } else if (e.button === 2) {
+            if (this.state.TextareaTouch) {
+                this.keylog.Output.push("TextareaTouch");
+            } else {
+                this.keylog.Output.push("Rightclick");
+            }
+        } else {
+            if (this.state.TextareaTouch) {
+                this.keylog.Output.push("TextareaTouch");
+            } else {
+                this.keylog.Output.push("Unknownclick");
+            }
+        }
+
+        this.logCurrentText(e);
+        // log cursor position
+        this.handleCursor(this.keylog, this.startSelect, this.endSelect);
+        /////// use a customized function to detect and record different activities and the according text changes these activities bring about
+        ActivityDetector(
+            this.keylog,
+            this.startSelect,
+            this.endSelect,
+            this.ActivityCancel,
+            this.TextChangeCancel
+        );
+        // set TextareaTouch back as false
+        this.setState((prevState) => ({
+            TextareaTouch: false,
+        }));
+    };
 
     addChunkCallback(chunk) {
         this.setState((prevState) => ({
@@ -194,18 +349,247 @@ class ProblemCard extends React.Component {
     }
 
     componentDidMount() {
-        // Start an asynchronous task
         this.updateBioInfo();
-        // new KeyStrokeLogger({
-        //     textAreaRef: this.state.showyourworkRef,
-        //     submitButtonRef: this.state.submitButtonRef,
-        //     sessionId: 2023,
-        //     userId: 12345,
-        //     quizId: 1106,
-        //     endpoint: "http://localhost:8000", //local host of the fastAPI
-        //     token: "my_token", // key chain  third-party authentication  attach to the call to endpoint()
-        // });
-        // console.log("student show hints status: ", this.showHints);
+
+        const isShowYourWorkAreaRef =
+            this.showYourWorkAreaRef.current &&
+            this.showYourWorkAreaRef.current.tagName === "TEXTAREA";
+
+        const isFinalAnswerAreaRef =
+            this.finalAnswerAreaRef.current &&
+            this.finalAnswerAreaRef.current.tagName === "MATH-FIELD";
+
+        const isSubmitButton =
+            this.submitButtonRef.current &&
+            this.submitButtonRef.current.tagName === "BUTTON";
+
+        const isAIFeedbackButton =
+            this.aiFeedbackButtonRef.current &&
+            this.aiFeedbackButtonRef.current.tagName === "BUTTON";
+
+        const isAIHintButton =
+            this.aiHintButtonRef.current &&
+            this.aiHintButtonRef.current.tagName === "BUTTON";
+
+        const isAISolutionButton =
+            this.aiSolutionButtonRef.current &&
+            this.aiSolutionButtonRef.current.tagName === "BUTTON";
+
+        const isTeacherGuidanceButton =
+            this.teacherGuidanceButtonRef.current &&
+            this.teacherGuidanceButtonRef.current.tagName === "BUTTON";
+
+        if (isShowYourWorkAreaRef) {
+            this.showYourWorkAreaRef.current.addEventListener(
+                "keydown",
+                (e) => {
+                    console.log("I hear a keydown event.");
+                    if (
+                        e.key === "Enter" &&
+                        !e.ctrlKey &&
+                        !e.shiftKey &&
+                        !e.altKey &&
+                        !e.metaKey
+                    ) {
+                        this.keylog.Output.push("Enter");
+                    } else {
+                        this.handleKeyDown(e);
+                    }
+                }
+            );
+
+            this.showYourWorkAreaRef.current.addEventListener(
+                "touchstart",
+                this.handleTouch
+            );
+            this.showYourWorkAreaRef.current.addEventListener(
+                "mousedown",
+                this.handleMouseClick
+            );
+        }
+
+        if (isFinalAnswerAreaRef) {
+            this.finalAnswerAreaRef.current.addEventListener("keydown", (e) => {
+                console.log("I hear a keydown event.");
+                if (
+                    e.key === "Enter" &&
+                    !e.ctrlKey &&
+                    !e.shiftKey &&
+                    !e.altKey &&
+                    !e.metaKey
+                ) {
+                    this.keylog.Output.push("Enter");
+                } else {
+                    this.handleKeyDown(e);
+                }
+            });
+
+            this.finalAnswerAreaRef.current.addEventListener(
+                "touchstart",
+                this.handleTouch
+            );
+            this.finalAnswerAreaRef.current.addEventListener(
+                "mousedown",
+                this.handleMouseClick
+            );
+        }
+
+        if (isSubmitButton) {
+            this.submitButtonRef.current.addEventListener("click", () => {
+                this.keylog.Output.push("Click Submit");
+            });
+        }
+
+        if (isAIFeedbackButton) {
+            this.aiFeedbackButtonRef.current.addEventListener("click", () => {
+                this.keylog.Output.push("Click Ai Feedback");
+            });
+        }
+
+        if (isAIHintButton) {
+            this.aiHintButtonRef.current.addEventListener("click", () => {
+                this.keylog.Output.push("Click Ai Hint");
+            });
+        }
+
+        if (isAISolutionButton) {
+            this.aiSolutionButtonRef.current.addEventListener("click", () => {
+                this.keylog.Output.push("Click Ai Solution");
+            });
+        }
+
+        if (isTeacherGuidanceButton) {
+            this.teacherGuidanceButtonRef.current.addEventListener(
+                "click",
+                () => {
+                    this.keylog.Output.push("Click Teacher Guidance");
+                }
+            );
+        }
+    }
+
+    componentWillUnmount() {
+        const isShowYourWorkAreaRef =
+            this.showYourWorkAreaRef.current &&
+            this.showYourWorkAreaRef.current.tagName === "TEXTAREA";
+        const isFinalAnswerAreaRef =
+            this.finalAnswerAreaRef.current &&
+            this.finalAnswerAreaRef.current.tagName === "TEXTAREA";
+
+        const isSubmitButton =
+            this.submitButtonRef.current &&
+            this.submitButtonRef.current.tagName === "BUTTON";
+
+        const isAIFeedbackButton =
+            this.aiFeedbackButtonRef.current &&
+            this.aiFeedbackButtonRef.current.tagName === "BUTTON";
+
+        const isAIHintButton =
+            this.aiHintButtonRef.current &&
+            this.aiHintButtonRef.current.tagName === "BUTTON";
+
+        const isAISolutionButton =
+            this.aiSolutionButtonRef.current &&
+            this.aiSolutionButtonRef.current.tagName === "BUTTON";
+
+        const isTeacherGuidanceButton =
+            this.teacherGuidanceButtonRef.current &&
+            this.teacherGuidanceButtonRef.current.tagName === "BUTTON";
+
+        if (isShowYourWorkAreaRef) {
+            this.showYourWorkAreaRef.current.removeEventListener(
+                "keydown",
+                (e) => {
+                    if (
+                        e.key === "Enter" &&
+                        !e.ctrlKey &&
+                        !e.shiftKey &&
+                        !e.altKey &&
+                        !e.metaKey
+                    ) {
+                        this.keylog.Output.push("Enter");
+                    } else {
+                        this.handleKeyDown(e);
+                    }
+                }
+            );
+
+            this.showYourWorkAreaRef.current.removeEventListener(
+                "touchstart",
+                this.handleTouch
+            );
+            this.showYourWorkAreaRef.current.removeEventListener(
+                "mousedown",
+                this.handleMouseClick
+            );
+        }
+
+        if (isFinalAnswerAreaRef) {
+            this.finalAnswerAreaRef.current.removeEventListener(
+                "keydown",
+                (e) => {
+                    if (
+                        e.key === "Enter" &&
+                        !e.ctrlKey &&
+                        !e.shiftKey &&
+                        !e.altKey &&
+                        !e.metaKey
+                    ) {
+                        this.keylog.Output.push("Remove Enter");
+                    } else {
+                        this.handleKeyDown(e);
+                    }
+                }
+            );
+
+            this.finalAnswerAreaRef.current.removeEventListener(
+                "touchstart",
+                this.handleTouch
+            );
+            this.finalAnswerAreaRef.current.removeEventListener(
+                "mousedown",
+                this.handleMouseClick
+            );
+        }
+
+        if (isSubmitButton) {
+            this.submitButtonRef.current.removeEventListener("click", () => {
+                this.keylog.Output.push("Remove Submit");
+            });
+        }
+
+        if (isAIFeedbackButton) {
+            this.aiFeedbackButtonRef.current.removeEventListener(
+                "click",
+                () => {
+                    this.keylog.Output.push("Remove AI Feedback");
+                }
+            );
+        }
+
+        if (isAIHintButton) {
+            this.aiHintButtonRef.current.removeEventListener("click", () => {
+                this.keylog.Output.push("Remove AI Hint");
+            });
+        }
+
+        if (isAISolutionButton) {
+            this.aiSolutionButtonRef.current.removeEventListener(
+                "click",
+                () => {
+                    this.keylog.Output.push("Remove AI Solution");
+                }
+            );
+        }
+
+        if (isTeacherGuidanceButton) {
+            this.teacherGuidanceButtonRef.current.removeEventListener(
+                "click",
+                () => {
+                    this.keylog.Output.push("Remove Teacher Guidance");
+                }
+            );
+        }
     }
 
     componentDidUpdate(prevProps) {
@@ -275,25 +659,6 @@ class ProblemCard extends React.Component {
             this.toggleHints("auto-expand");
         }
 
-        this.context.firebase.log(
-            parsed,
-            problemID,
-            this.step,
-            null,
-            isCorrect,
-            hintsFinished,
-            "answerStep",
-            chooseVariables(
-                Object.assign({}, problemVars, variabilization),
-                seed
-            ),
-            lesson,
-            courseName,
-            this.state.displayHintType,
-            this.state.dynamicHint,
-            this.state.studentProgress
-        );
-
         if (this.showCorrectness) {
             toastNotifyCorrectness(isCorrect, reason);
         } else {
@@ -305,6 +670,111 @@ class ProblemCard extends React.Component {
             checkMarkOpacity: isCorrect ? "100" : "0",
         });
         answerMade(this.index, knowledgeComponents, isCorrect);
+
+        // keystroke logging part
+        if (this.EventID != 0) {
+            this.keylog.TaskOnSet.push(this.taskonset); //record task onset time
+
+            ///// adjust the keylog data
+            // record current text
+            this.keylog.TextContent.push(
+                String(this.showYourWorkAreaRef.current.value)
+            );
+
+            this.keylog.finalAnswer.push(
+                String(this.finalAnswerAreaRef.current.value)
+            );
+
+            // record the final product
+            this.keylog.FinalProduct = String(
+                this.keylog.TextContent.slice(-1)
+            );
+
+            // log cursor position
+            this.handleCursor(this.keylog, this.startSelect, this.endSelect);
+            /////// use a customized function to detect and record different activities and the according text changes these activities bring about
+            ActivityDetector(
+                this.keylog,
+                this.startSelect,
+                this.endSelect,
+                this.ActivityCancel,
+                this.TextChangeCancel
+            );
+
+            //Add PartitionKey
+            this.keylog.PartitionKey.push(this.userId);
+
+            //Textchange and Activity adjustment
+            this.keylog.TextChange.shift();
+            this.keylog.Activity.shift();
+
+            // cursor information adjustment
+            this.keylog.CursorPosition.shift();
+
+            let d_end = new Date();
+            let taskend = d_end.getTime();
+            this.keylog.TaskEnd.push(taskend); //record task end time
+
+            //post the data to the serve and lead to the next page
+            let keylog_data = {
+                PartitionKey: this.keylog.PartitionKey.toString(),
+                RowKey: this.keylog.RowKey.join(),
+                EventID: this.keylog.EventID.join(),
+                EventTime: this.keylog.EventTime.join(),
+                Output: this.keylog.Output.join("<=@=>"),
+                CursorPosition: this.keylog.CursorPosition.join(),
+                TextChange: this.keylog.TextChange.join("<=@=>"),
+                Activity: this.keylog.Activity.join("<=@=>"),
+            };
+
+            // console.log("keylog_eedi: ", keylog_data);
+
+            this.context.firebase.log(
+                parsed,
+                problemID,
+                this.step,
+                null,
+                isCorrect,
+                hintsFinished,
+                "answerStep",
+                chooseVariables(
+                    Object.assign({}, problemVars, variabilization),
+                    seed
+                ),
+                lesson,
+                courseName,
+                this.state.displayHintType,
+                this.state.dynamicHint,
+                this.state.studentProgress,
+                keylog_data
+            );
+
+            //empty keylog
+            this.keylog.PartitionKey = [];
+            this.keylog.RowKey = [];
+            this.keylog.EventID = [];
+            this.keylog.EventTime = [];
+            this.keylog.FinalProduct = [];
+            this.keylog.CursorPosition = [];
+            this.keylog.Output = [];
+            this.keylog.TaskEnd = [];
+            this.keylog.TaskOnSet = [];
+            this.keylog.TextChange = [];
+            this.keylog.Activity = [];
+            this.keylog.TextContent = [];
+            this.EventID = 0;
+        }
+
+        // reset variables
+        this.EventID = 0;
+        this.startSelect = [];
+        this.endSelect = [];
+        this.ActivityCancel = []; // to keep track of changes caused by control + z
+        this.TextChangeCancel = []; // to keep track of changes caused by control + z
+
+        console.log(
+            `Inner submit! e.g. submit the keystroke logging data... (your code) for ${this.sessionId}`
+        );
     };
 
     editInput = (event) => {
@@ -842,18 +1312,8 @@ class ProblemCard extends React.Component {
                             >
                                 <div style={{ width: "60%" }}>
                                     <span>Show your steps</span>
-                                    {/* <math-field
-                                        // ref={this.mathliveRef}
-                                        onChange={this.handleStudStepsChange}
-                                        onInput={(evt) =>
-                                            this.props.setInputValState(
-                                                evt.target.value
-                                            )
-                                        }
-                                        style={{ display: "block" }}
-                                    ></math-field> */}
                                     <textarea
-                                        ref={this.state.showyourworkRef}
+                                        ref={this.showYourWorkAreaRef}
                                         type="text"
                                         onChange={this.handleStudStepsChange}
                                         placeholder="Type something here..."
@@ -876,6 +1336,7 @@ class ProblemCard extends React.Component {
                                 >
                                     <span>Final Answer</span>
                                     <ProblemInput
+                                        equationRef={this.finalAnswerAreaRef}
                                         variabilization={chooseVariables(
                                             Object.assign(
                                                 {},
@@ -905,6 +1366,7 @@ class ProblemCard extends React.Component {
                             <div className="showyourworkAllGroup">
                                 <div className="button-group">
                                     <Button
+                                        ref={this.aiFeedbackButtonRef}
                                         onClick={(event) =>
                                             this.toggleEvaluation(
                                                 event,
@@ -948,6 +1410,7 @@ class ProblemCard extends React.Component {
                                 </div>
                                 <div className="button-group">
                                     <Button
+                                        ref={this.aiSolutionButtonRef}
                                         onClick={(event) =>
                                             this.toggleEvaluation(
                                                 event,
@@ -969,6 +1432,7 @@ class ProblemCard extends React.Component {
                                 </div>
                                 <div className="button-group left-padding">
                                     <Button
+                                        ref={this.teacherGuidanceButtonRef}
                                         onClick={(event) =>
                                             this.toggleEvaluation(
                                                 event,
@@ -1022,6 +1486,7 @@ class ProblemCard extends React.Component {
                                     />
                                     <div className="button-group">
                                         <Button
+                                            ref={this.aiFeedbackButtonRef}
                                             onClick={(event) =>
                                                 this.toggleEvaluation(
                                                     event,
@@ -1054,6 +1519,7 @@ class ProblemCard extends React.Component {
                                 >
                                     <span>Final Answer</span>
                                     <ProblemInput
+                                        equationRef={this.finalAnswerAreaRef}
                                         variabilization={chooseVariables(
                                             Object.assign(
                                                 {},
@@ -1101,6 +1567,7 @@ class ProblemCard extends React.Component {
                                     <span>Show your steps</span>
                                     <textarea
                                         type="text"
+                                        ref={this.showYourWorkAreaRef}
                                         onChange={this.handleStudStepsChange}
                                         placeholder="Type something here..."
                                         style={{
@@ -1110,6 +1577,7 @@ class ProblemCard extends React.Component {
                                         }}
                                     />
                                     <Button
+                                        ref={this.aiFeedbackButtonRef}
                                         onClick={(event) =>
                                             this.toggleEvaluation(
                                                 event,
@@ -1137,6 +1605,7 @@ class ProblemCard extends React.Component {
                                 >
                                     <span>Final Answer</span>
                                     <ProblemInput
+                                        equationRef={this.finalAnswerAreaRef}
                                         variabilization={chooseVariables(
                                             Object.assign(
                                                 {},
@@ -1167,6 +1636,7 @@ class ProblemCard extends React.Component {
                     ) : (
                         <div className={classes.root}>
                             <ProblemInput
+                                equationRef={this.showYourWorkAreaRef}
                                 variabilization={chooseVariables(
                                     Object.assign(
                                         {},

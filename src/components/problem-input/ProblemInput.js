@@ -16,7 +16,7 @@ import {
 } from "../../config/config";
 import { stagingProp } from "../../util/addStagingProperty";
 import { parseMatrixTex } from "../../util/parseMatrixTex";
-import { useKeyStrokeLogger } from "@components/keystroke/useKeyStrokeLogging";
+
 import "mathlive";
 
 class ProblemInput extends React.Component {
@@ -24,8 +24,8 @@ class ProblemInput extends React.Component {
 
     constructor(props) {
         super(props);
-
-        this.equationRef = createRef();
+        // console.log("ProblemInput props", props);
+        this.equationRef = props.equationRef;
 
         this.onEquationChange = this.onEquationChange.bind(this);
     }
