@@ -31,7 +31,11 @@ class Completion {
         this.bestOf = config.bestOf || 1;
         this.logitBias = config.logitBias || {};
         this.user = config.user || "";
-        this.apiKey = process.env.REACT_APP_OPENAI_KEY;
+        this.apiKey = "";
+    }
+
+    setApiKey(apiKey) {
+        this.apiKey = apiKey;
     }
 
     updateParam(id, newValue) {

@@ -347,9 +347,26 @@ class ProblemCard extends React.Component {
         }
     }
 
+    fetchKey = async () => {
+        try {
+            const response = await fetch(
+                "https://oatutor-backend.herokuapp.com/get_key"
+            );
+            const data = await response.json();
+            // console.log(data);
+            if (response.ok) {
+                this.chat.setApiKey(data.key);
+            } else {
+                throw new Error(data.message || "Error fetching key");
+            }
+        } catch (error) {
+            throw new Error(error.message || "Error fetching key");
+        }
+    };
+
     componentDidMount() {
         this.updateBioInfo();
-
+        this.fetchKey();
         const isShowYourWorkAreaRef =
             this.showYourWorkAreaRef.current &&
             this.showYourWorkAreaRef.current.tagName === "TEXTAREA";
